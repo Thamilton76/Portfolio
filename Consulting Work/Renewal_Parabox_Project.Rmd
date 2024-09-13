@@ -1,0 +1,106 @@
+---
+title: "Consulting Project"
+output: 
+  html_document:
+    theme: journal
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+data <- read.csv("../Data/ConsultingProject.csv", header=TRUE)
+```
+
+
+![](../Images/Parabox.png)
+
+```{r, message = FALSE, include=FALSE}
+library(car)
+library(tidyverse)
+library(mosaic)
+library(pander)
+library(DT)
+library(readr)
+
+
+data$start_date <- as.POSIXct(data$start_date)
+data$end_date <- as.POSIXct(data$end_date)
+data$avg_time <- as.numeric(data$end_date - data$start_date)
+```
+
+## Background
+
+[PARABOX](https://www.paraboxmonthly.com/) is a monthly subscription box that contain a comfortable t-shirt with a paranormal design. Ghosts, haunted locations, aliens, UFOs, folklore, urban legends In each design, there will be a secret message that will lead you on an adventure learning more about that month's theme. Parabox started in October 2017, and has been growing ever since. 
+
+
+### Question/Hypothesis
+
+Is there a relationship between the amount of time one customer has been subscribed and if they will renew their subscription?
+
+$$
+H_0: \mu_\text{Will Renew} - \mu_\text{Will Not Renew}=0
+$$
+$$
+H_a: \mu_\text{Will Renew} - \mu_\text{Will Not Renew} \neq 0
+$$
+
+$$
+\alpha = 0.05
+$$
+
+
+### Data Table
+
+Here is the data that I will be looking at through out this analysis. In the avg_time table, is the average time that the one customer has spent subscribed to the monthly subscription box in days. The will_renew column shows if the customer will renew their monthly subscription.
+
+```{r}
+data2 <- data %>%
+  select(avg_time, will_renew)
+datatable(data2, options=list(lengthMenu = c(5,10,100)), extensions="Responsive")
+```
+
+
+## Analysis
+
+Below is a side by side boxplot of the the average time a person is subscribed for and if they will renew or not. This will help see if there is a relationship between both groups of customers, the customers that will renew and the customers that will not renew.
+
+```{r, message = FALSE}
+ggplot(data, aes(x=will_renew, y=avg_time))+
+  geom_boxplot(fill="darkslateblue",color="black") +
+  labs(title= "Avg Time Subscribed in days vs. If They Will Renew", x="Will They Renew?", y="Average Subsribtion Time in days")
+
+```
+
+From the boxplots above we can see that both groups of data are right skewed. We can also see that the median for the group that will renew is higher than the group that will not renew.
+
+### Q-Q Plots
+```{r,message = FALSE, id=FALSE}
+False <- filter(data, !will_renew)
+True <- filter(data, will_renew)
+qqPlot(False$avg_time, ylab = "Average Time Subscribed in Days", xlab = "Will Not Renew", id = FALSE)
+qqPlot(True$avg_time, ylab = "Average Time Subscribed in Days", xlab = "Will Renew", id = FALSE)
+```
+
+Based on the data shown above, I am performing a independent sample t test on the data. The sample size for both groups are a larger than 30, so I am assuming the sample mean distributions are normal because of central limit theorem. The central limit theorem states the sampling distribution of sample means approaches a normal distribution as the sample size continues to get larger and larger.
+
+### Independent T-Test
+
+```{r}
+pander(t.test(data$avg_time ~ data$will_renew, mu =0, alternative = "two.sided", conf.level = 0.95), caption = "Independent Samples t Test of Average time subscribed in days while they will renew the subscribtion or not", split.table=Inf)
+```
+
+There is sufficient evidence to reject the null hypothesis due to the p-value (3.699e-30) is very close to zero and since the $\text{p-value}<\alpha$.
+
+### Summary Table
+
+```{r}
+Summary1 <- data2 %>% group_by(will_renew) %>%
+  summarise(min=min(avg_time, na.rm = "True"), median=median(avg_time), mean=mean(avg_time), max=max(avg_time), sd=sd(avg_time), n=n())
+ pander(Summary1, caption = "Summary Statistics of Average Time Subcribed in days by Customer Will Renew or not") 
+```
+
+From the data table above we can see that the standard deviation for the group of customers that will renew is significantly larger than the group that will not renew. This means that the customers that do not renew  with the subscription box are closer to the mean than the group of customers that do renew are to their mean.
+
+## Conclusion
+
+From the data above we can see that the means of average time with the company in days and the groups of customers that will renew their subscription and the ones that will not are very different. This is also shown in the Independent T test that we ran. Since the $p$ value was a lot smaller than what our $\alpha$ value was at, this indicates that there is enough evidence for us to reject the null hypothesis of $\mu_\text{Will Renew} - \mu_\text{Will Not Renew}=0$. Since we can reject the null hypothesis, we can conclude that the customers that renew their subscription spend more time with the subscription box than the customers that do not renew with the subscription box.

@@ -1,0 +1,162 @@
+---
+title: "Basketball Shots"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+```{r, warning=FALSE, message=FALSE}
+library(mosaic)
+library(DT)
+library(pander)
+library(car)
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+basketball <- read.csv("Data/BF_2_Basketball.csv")
+```
+## Introduction
+
+While watching the opening games of the NBA season, I noticed that every NBA player jumps in their shooting motion, but when they shoot free throws, they do not jump.
+I was curious about how important it is to jump while shooting a basketball rather than not jumping at all. 
+
+## Method
+
+Step 1. Pick three locations on the court that are form a straight line with the basket. I picked the free throw line, top of the key, and half court.
+
+Step 2. Randomly select the order for the type of shot that was going to be taken. I knew I was taking 6 samples, so I assigned one method of shooting to the even numbers and the odd numbers to the other method of shooting. I then used a random number generator to give me a number between 1 and 6. I got an odd number, so I then used the random number generator to give me a number between 2 and 6. I did this until I had given each method a spot in the order.
+
+Step 3. Randomly select the order from where you are taking the shots from. I assigned each location a number between 1 and 3. I then used a random number generator to select the first location I would be shooting at. I then assigned the locations that were remaining a number between 1 and 2 and used a random number generator to select the next spot I would be shooting at. I did this every time for each sample that was collected.
+
+Step 4. Take ten shots from each location while not jumping and record the number of shots made.
+
+Step 5. Take ten shots from each location while jumping and record the number of shots made.
+
+Step 6. Make sure to collect all the data from the same time (I collected the data on a Wednesday evening), use the same basketball for the all of the shots (I used a Precision TF-1000 Indoor Game Basketball from Spalding), and make sure the hoop is set at regulation height of 10 feet.
+
+### Variability
+
+For this experiment, some variability can occur if there are multiple people taking the shots. To reduce this have only one person shoot all of the baskets. Another variability that can occur deals with collecting the data. If the data is collected over a period of multiple days. One person could have a bad shooting day one day, and the the next day have a fantastic shooting day. To limit this, we must collect all of the data the same day without taking breaks. Another variability that can occur deals with the type of basketball being used. To limit this, use the same basketball for the whole time you are collecting data. There are plenty of different types of basketballs and sizes that can give you variability.
+
+## Analysis {.tabset}
+
+### Hypothesis
+There will be three hypothesis for this test. The first hypothesis is:
+
+$$
+H_o:  \mu_\text{Jumping} =\mu_\text{Not Jumping} = \mu
+$$
+$$
+H_a: \mu_\text{Jumping} \neq \mu_\text{Not Jumping}
+$$
+
+The second hypothesis is:
+
+$$
+H_o: \mu_\text{Free Throw}=\mu_\text{Top of Key}= \mu_\text{Half Court}
+$$
+$$
+H_a: \mu_i \neq \mu \text{ for at least one i } \in \text{{1 = Free Throw,  2 = Top of Key, 3 = Half Court} }
+$$
+
+The third hypothesis is:
+
+$$
+H_o: \text{ The effect of the shooting method (jumping) on the number of shots made out of ten is the same for all levels of location of the shot.}
+$$
+$$
+H_a: \text{The effect of the shooting method (jumping) on the number of shots made out of ten is not the same for all levels of location of the shot.}
+$$
+
+
+A significance level of $\alpha = 0.05$ will be used for this study.
+
+### Data
+This is a table of all the raw data that was collected for the experiment.
+```{r,warning=FALSE, message=FALSE}
+pander(basketball)
+```
+
+### Summary
+Here is a summary of the raw data. From looking at the this summary, we can not come to any conclusion. We can see that the mean number of free throws made is higher than the other locations. We can also see that the mean number of shots made when the shooter jumped is higher than the mean number of shots made when the shooter did not jumped
+```{r,warning=FALSE, message=FALSE}
+basketball %>%
+  group_by(Location) %>%
+  summarise(Min = min(Makes), Q1 = quantile(Makes,.25), Median = median(Makes), Q3 = quantile(Makes,.75), Max = max(Makes), Mean = mean(Makes), n=n()) %>% pander()
+
+
+basketball %>%
+  group_by(Shot) %>%
+  summarise(Min = min(Makes), Q1 = quantile(Makes,.25), Median = median(Makes), Q3 = quantile(Makes,.75), Max = max(Makes), Mean = mean(Makes), n=n()) %>% pander()
+```
+
+
+### ANOVA
+Here is the summary of the ANOVA test.
+```{r,warning=FALSE, message=FALSE}
+myaov <- aov(Makes ~ Shot + Location + Shot:Location, data = basketball)
+summary(myaov) %>% pander()
+```
+
+As we look at all the p-values, we see the p-values for shot (p-value = 0.225) and location (p-value = 0.2271) are greater than our alpha ($\alpha = 0.05$). This means that we can not conclude that the mean number of shots for each location is different and we also can not conclude that the mean number of shots with different shooting methods is different. The p-value for the interaction (p-value = 0.01122) is smaller than our alpha. This tells us that the effect of the shooting method (jumping or not jumping) on the number of shots made out of ten is not the same for all levels of location of the shot. 
+
+### Assumptions
+
+The assumptions are met. We can see this by looking at the two graphs below. We can see that there are two points on both graphs that are either higher or lower than usual that is why it is making the data look a bit non-normal. However, the rest of the data looks normal.
+
+```{r}
+par(mfrow=c(1,2))
+plot(myaov, which=1:2, pch=16)
+```
+
+### Graphical Summaries
+```{r}
+
+xyplot(Makes ~ as.factor(Shot), data = basketball, type=c("p","a"), main = "Significance of Jumping", xlab = "Type of Shot", ylab = "Number of Shots Made Out of 10")
+
+basketball %>%
+  group_by(Shot) %>%
+  summarise(`Mean Number of Shots made out of Ten`=mean(Makes)) %>%
+  pander(caption="Mean Number of Shots made out of Ten according to the type of shot.")
+
+```
+
+
+The graph above shows that there is a decrease in the mean from jumping while shooting to not jumping while shoot. The table shows that the mean number of shots made out of ten while jumping is 3.111 and the mean number of shots made out of ten while not jumping is 2.444. Just by looking at the means, we can not conclude that they are different. This is also shown from the Anova test we ran. The p-value we received was 0.225 which is higher than the alpha of 0.05. Which means we do not significant evidence to say that there is a difference between the two.
+
+
+
+
+```{r}
+xyplot(Makes ~ as.factor(Location), data = basketball, type=c("p","a"), main = "Significance of Location", xlab = "Location of Shot", ylab = "Number of Shots Made Out of 10")
+
+basketball %>%
+  group_by(Location) %>%
+  summarise(`Mean Number of Shots made out of Ten`=mean(Makes)) %>%
+  pander(caption="Mean Number of Shots made out of Ten according to the location of the shot.")
+```
+
+
+The graph above shows that there is a decrease in the mean from shooting at the free throw line while shooting from the top of the key and Half court. The table shows that the mean number of shots made out of ten while shooting at the free throw line is 3.333, the mean number of shots made out of ten while shooting at the top of the key is 2.833, and the mean number of shots made out of ten while shooting at half court is 2.167. Just by looking at the means, we can not conclude that they are different. This is also shown from the Anova test we ran. The p-value we received was 0.2271 which is higher than the alpha of 0.05. Which means we do not significant evidence to say that there is a difference between the three locations.
+
+
+```{r}
+basketball$Makes <- as.numeric(basketball$Makes)
+xyplot( Makes~ as.factor(Location), data = basketball, groups=as.factor(Shot),type=c("p","a"), main = "Significance of Jumping", xlab = "Location of Shot", ylab = "Number of Shots Made Out of 10", auto.key = list(corner=c(1,1)))
+
+basketball %>%
+  group_by(Shot, Location) %>%
+  summarise(ave=mean(Makes),.groups="keep") %>%
+  spread(Shot, ave) %>%
+  pander(caption="Mean Number of Shots made out of Ten according to the location of the shot and the type of shot.")
+```
+
+
+Now with this graph shows that there is an interaction between type of shot and the location. We can see this in the graph by the intersection with the two lines. We also can see that there is an interaction between the two factors with the ANOVA test we ran. The p-value we received was 0.01122 which is smaller than our alpha of 0.05. From this we can conclude that jumping is not always the best shot method for every location.
+
+
+
+## Conclusion
+
+In general, we recommend not jumping when shooting free throws, but when you are shooting at the top of the key and at half court, we recommend jumping while shooting the basketball. The average number of shots made out of ten while jumping from the free throw line is 2.333 but when not jumping the average number of shots made out of ten is 4.333. Then when jumping at the other locations are significantly larger than when not jumping. We recommend this because from the ANOVA test we ran, we can conclude that the effect of the shooting method (jumping) on the number of shots made out of ten is not the same for all levels of location of the shot.
